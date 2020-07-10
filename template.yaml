@@ -1,0 +1,51 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Parameters:
+  ExecutionHour:
+    Type: Number
+    Default: 18
+  TagName:
+    Type: String
+    Default: delete
+  TagValue:
+    Type: String
+    Default: "true"
+
+Resources:
+  AutomationExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ssm.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyDocument:
+            Statement:
+              - Sid: StopEC2Instances
+                Action:
+                  - ec2:StopInstances
+                  - ec2:DescribeInstanceStatus
+                Effect: Allow
+                Resource: "*"
+          PolicyName: ssm-policy
+
+  InstancesToStopAssociation:
+    Type: AWS::SSM::Association
+    Properties:
+      Name: AWS-StopEC2Instance
+      ScheduleExpression: !Sub "cron(0 ${ExecutionHour} ? * * *)"
+      ApplyOnlyAtCronInterval: true
+      Parameters:
+        AutomationAssumeRole:
+          - !GetAtt AutomationExecutionRole.Arn
+      Targets:
+        - Key: !Sub "tag:${TagName}"
+          Values:
+            - !Ref TagValue
+      AutomationTargetParameterName: InstanceId
