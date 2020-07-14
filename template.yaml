@@ -49,3 +49,75 @@ Resources:
           Values:
             - !Ref TagValue
       AutomationTargetParameterName: InstanceId
+
+  RequireManagedTag:
+    Type: AWS::Config::ConfigRule
+    Properties:
+      ConfigRuleName: RequireDeleteTag
+      Description: !Sub "Checks whether the '${TagName}' tag is set for EC2 Instances."
+      Source:
+        Owner: AWS
+        SourceIdentifier: REQUIRED_TAGS
+      Scope:
+        ComplianceResourceTypes:
+          - AWS::EC2::Instance
+      InputParameters:
+        tag1Key: !Ref TagName
+
+  TagUntaggedInstances:
+    Type: "AWS::Config::RemediationConfiguration"
+    Properties:
+      Automatic: true
+      ConfigRuleName: !Ref RequireDeleteTag
+      MaximumAutomaticAttempts: 5
+      RetryAttemptSeconds: 50
+      Parameters:
+        AutomationAssumeRole:
+          StaticValue:
+            Values:
+              - !GetAtt AutomationServiceRole.Arn
+        InstanceId:
+          ResourceValue:
+            Value: RESOURCE_ID
+      TargetId: !Ref TagInstancesDocument
+      TargetType: "SSM_DOCUMENT"
+
+  AutomationServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ssm.amazonaws.com
+                - ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonSSMAutomationRole
+      Path: "/"
+      RoleName: AutomationServiceRole
+
+  TagInstancesDocument:
+    Type: AWS::SSM::Document
+    Properties:
+      DocumentType: Automation
+      Content:
+        schemaVersion: '0.3'
+        assumeRole: "{{ AutomationAssumeRole }}"
+        parameters:
+          InstanceId:
+            type: String
+          AutomationAssumeRole:
+            type: String
+        mainSteps:
+          - name: TagEC2Instance
+            action: aws:createTags
+            inputs:
+              ResourceType: EC2
+              ResourceIds:
+                - "{{ InstanceId }}"
+              Tags:
+                - Key: !Ref TagName
+                  Value: !Ref TagValue
