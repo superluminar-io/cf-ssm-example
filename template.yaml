@@ -50,7 +50,7 @@ Resources:
             - !Ref TagValue
       AutomationTargetParameterName: InstanceId
 
-  RequireDeleteTag:
+  RequireManagedTag:
     Type: AWS::Config::ConfigRule
     Properties:
       ConfigRuleName: RequireDeleteTag
