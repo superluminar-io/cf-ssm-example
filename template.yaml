@@ -64,7 +64,7 @@ Resources:
       InputParameters:
         tag1Key: !Ref TagName
 
-  TagUntagedInstances:
+  TagUntaggedInstances:
     Type: "AWS::Config::RemediationConfiguration"
     Properties:
       Automatic: true
