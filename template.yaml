@@ -68,7 +68,7 @@ Resources:
     Type: "AWS::Config::RemediationConfiguration"
     Properties:
       Automatic: true
-      ConfigRuleName: !Ref RequireDeleteTag
+      ConfigRuleName: !Ref RequireManagedTag
       MaximumAutomaticAttempts: 5
       RetryAttemptSeconds: 50
       Parameters:
